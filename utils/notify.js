@@ -372,18 +372,27 @@ async function sendNotify(title, content) {
   if (process.env.DISCORD_WEBHOOK) {
     channels.push({ name: 'Discord', fn: () => sendDiscord(title, content, process.env.DISCORD_WEBHOOK) })
   }
-  if (process.env.MAIL_HOST && process.env.MAIL_USER && process.env.MAIL_PASS && process.env.MAIL_TO) {
-    channels.push({
-      name: '邮箱',
-      fn: () => sendMailSMTP(title, content, {
-        host: process.env.MAIL_HOST,
-        port: process.env.MAIL_PORT || 465,
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS,
-        to: process.env.MAIL_TO,
-      }),
-    })
+  const mailUser = process.env.MAIL_USER
+  const mailPass = process.env.MAIL_PASS
+  if (mailUser && mailPass) {
+    const isQQ = mailUser.endsWith('@qq.com') || mailUser.endsWith('@foxmail.com')
+    const mailHost = process.env.MAIL_HOST || (isQQ ? 'smtp.qq.com' : '')
+    const mailPort = process.env.MAIL_PORT || 465
+    const mailTo = process.env.MAIL_TO || mailUser
+    if (mailHost) {
+      channels.push({
+        name: '邮箱',
+        fn: () => sendMailSMTP(title, content, {
+          host: mailHost,
+          port: mailPort,
+          user: mailUser,
+          pass: mailPass,
+          to: mailTo,
+        }),
+      })
+    }
   }
+
 
   if (channels.length === 0) {
     return
