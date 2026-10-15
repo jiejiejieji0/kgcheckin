@@ -341,7 +341,7 @@ function sendMailSMTP(title, content, cfg) {
  * @param {string} title - 通知标题
  * @param {string} content - 通知正文（纯文本）
  */
-async function sendNotify(title, content) {
+async function sendNotify(title, content, options = {}) {
   const channels = []
 
   // 收集所有已配置的渠道
@@ -380,16 +380,23 @@ async function sendNotify(title, content) {
     const mailPort = process.env.MAIL_PORT || 465
     const mailTo = process.env.MAIL_TO || mailUser
     if (mailHost) {
-      channels.push({
-        name: '邮箱',
-        fn: () => sendMailSMTP(title, content, {
-          host: mailHost,
-          port: mailPort,
-          user: mailUser,
-          pass: mailPass,
-          to: mailTo,
-        }),
-      })
+      // 邮件策略：有故障或签到未成功每次必发；正常成功仅在每周指定日期（默认周日）发送
+      const hasFailure = Boolean(options.hasError)
+      const isWeekly = options.isWeeklyDay ?? true
+      if (hasFailure || isWeekly) {
+        channels.push({
+          name: '邮箱',
+          fn: () => sendMailSMTP(title, content, {
+            host: mailHost,
+            port: mailPort,
+            user: mailUser,
+            pass: mailPass,
+            to: mailTo,
+          }),
+        })
+      } else {
+        printYellow('  ℹ 邮箱通知: 今日签到正常，非每周汇总日，跳过邮件发送')
+      }
     }
   }
 
