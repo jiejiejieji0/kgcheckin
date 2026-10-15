@@ -200,9 +200,15 @@ async function main() {
     }
   }
 
+  // 检查是否发生故障或未能完全签到成功
+  const isFailure = hasError || Boolean(secretError) || failCount > 0 || notifyResults.length === 0
+  // 每周日发送一次常规周报（0 代表周日，与周日刷新Token周期一致；支持环境变量 MAIL_WEEKLY_DAY 自定义）
+  const weeklyDay = process.env.MAIL_WEEKLY_DAY !== undefined ? parseInt(process.env.MAIL_WEEKLY_DAY, 10) : 0
+  const isWeeklyDay = today.getDay() === weeklyDay
+
   // 发送通知（确保即使 secret 更新失败也能发出）
   try {
-    await sendNotify(title, content)
+    await sendNotify(title, content, { hasError: isFailure, isWeeklyDay })
   } catch (e) {
     printYellow(`通知发送异常: ${e.message}`)
   }
